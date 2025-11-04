@@ -550,7 +550,7 @@ def find_spec_file(state: ADWState, logger: logging.Logger) -> Optional[str]:
 
     if result.returncode == 0:
         files = result.stdout.strip().split("\n")
-        spec_files = [f for f in files if f.startswith("spec/") and f.endswith(".md")]
+        spec_files = [f for f in files if f.startswith("specs/") and f.endswith(".md") and not f.startswith("specs/patch/")]
 
         if spec_files:
             # Use the first spec file found
@@ -572,7 +572,7 @@ def find_spec_file(state: ADWState, logger: logging.Logger) -> Optional[str]:
             # Look for spec files matching the pattern
             import glob
 
-            pattern = f"spec/issue-{issue_num}-adw-{adw_id}*.md"
+            pattern = f"specs/issue-{issue_num}-adw-*.md"
             spec_files = glob.glob(pattern)
 
             if spec_files:
@@ -637,10 +637,14 @@ def create_and_implement_patch(
     # Extract the patch plan file path from the response
     patch_file_path = response.output.strip()
 
-    # Validate that it looks like a file path
-    if not patch_file_path.startswith("specs/patch/") or not patch_file_path.endswith(
-        ".md"
-    ):
+    # Validate that it looks like a file path (handle both absolute and relative paths)
+    # Check if it's a valid patch file path and ends with .md
+    is_valid_path = (
+        patch_file_path.endswith(".md") and
+        ("specs/patch/" in patch_file_path or "/patch/" in patch_file_path)
+    )
+
+    if not is_valid_path:
         logger.error(f"Invalid patch plan path returned: {patch_file_path}")
         return None, AgentPromptResponse(
             output=f"Invalid patch plan path: {patch_file_path}", success=False
